@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ErlangDesk - how many agents does your phone line need?</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#101a1a; color:#f3ede6; line-height:1.5; }
+  .wrap { max-width:700px; margin:0 auto; padding:26px 16px 50px; }
+  h1 { font-size:28px; } h1 span { color:#4fd1c5; }
+  .sub { color:#b5aa9c; margin:6px 0 16px; }
+  .card { background:#182828; border-radius:14px; padding:14px; margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+  label { font-size:12px; color:#b5aa9c; display:block; margin-bottom:3px; }
+  input,select { width:100%; background:#101a1a; color:#f3ede6; border:1px solid #574f48; border-radius:8px; padding:8px; font-size:15px; font-family:inherit; }
+  button { background:#245a56; color:#f3ede6; border:0; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; margin-right:6px; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:8px 4px; border-bottom:1px solid #433c36; } th { font-size:12px; color:#b5aa9c; font-weight:600; }
+  td.v { font-size:22px; font-weight:800; color:#4fd1c5; } tr.me td.v { color:#f3ede6; }
+  .stats { display:flex; gap:22px; flex-wrap:wrap; margin-top:12px; } .stats b { display:block; font-size:20px; } .muted { color:#b5aa9c; font-size:13px; }
+  .err { color:#ff9c8a; } .note { font-size:12.5px; color:#8c8174; margin-top:6px; }
+
+  td.v { font-size:17px; } td, th { font-size:14px; } .bar { height:10px; background:#101a1a; border-radius:6px; overflow:hidden; margin-top:6px; } .bar i { display:block; height:100%; background:#4fd1c5; } .bar i.over { background:#ff7b72; } .no { color:#ff9c8a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Erlang<span>Desk</span></h1>
+  <div class="sub">How many people to put on the phones (or the chat queue) to answer on time, and how many to roster.</div>
+  <div class="card">
+    <div class="grid">
+      <div><label>Contacts in the interval</label><input id="calls" value="200"></div>
+      <div><label>Interval length (minutes)</label><input id="interval" value="60"></div>
+      <div><label>Average handle time (seconds, incl. wrap-up)</label><input id="aht" value="180"></div>
+      <div><label>Target: % answered in time</label><input id="sl" value="80"></div>
+      <div><label>... within (seconds)</label><input id="t" value="20"></div>
+      <div><label>Shrinkage (% of paid time off the queue)</label><input id="shrink" value="30"></div>
+      <div><label>Max occupancy % (optional)</label><input id="occ" value=""></div>
+    </div>
+    <button id="q1">200 calls an hour, 3 min, 80/20</button><button id="q2">100 per half hour, 5 min</button><button id="q3">Chat: 60 per hour, 8 min, 90/60</button>
+  </div>
+  <div class="card" id="out"></div>
+  <div class="note">Method: Erlang C. Offered load A (erlangs) = contacts x handle time / interval length. Probability of waiting is the Erlang C formula (computed through the stable Erlang B recursion). Service level = 1 - P(wait) x e^(-(N-A) x T / AHT). Average speed of answer = P(wait) x AHT / (N-A). Roster = agents / (1 - shrinkage), rounded up. Check: 200 calls an hour at 180 s (10 erlangs) with 14 agents gives 88.8% in 20 s, 17.4% waiting and 71.4% occupancy, which matches the worked example on Calcoid's Erlang C calculator. Erlang C assumes random (Poisson) arrivals, exponentially distributed handle times and callers who never hang up, so it tends to overstate waits a little for real queues. It ignores skills, breaks inside the interval and busy-hour spikes: plan with your real peak interval, not the daily average. Runs in your browser, nothing stored.</div>
+</div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var E = window.ErlangDesk, $ = function (i) { return document.getElementById(i); }, v = function (i) { return parseFloat($(i).value); };
+  function f(x, d) { return x.toFixed(d); }
+  function render() {
+    var mo = $('occ').value.trim() === '' ? 0 : v('occ');
+    var r = E.plan(v('calls'), v('interval'), v('aht'), v('sl'), v('t'), v('shrink'), mo);
+    if (!r) { $('out').innerHTML = '<div class="err">Check the inputs: contacts, interval and handle time above 0, target between 0 and 100, seconds 0 or more, shrinkage under 90.</div>'; return; }
+    var rows = r.table.map(function (x) {
+      var ok = x.serviceLevel >= r.target, cur = x.agents === r.agents;
+      return '<tr' + (cur ? ' style="font-weight:700"' : '') + '><td>' + x.agents + (cur ? ' (needed)' : '') + '</td><td>' + f(x.serviceLevel * 100, 1) + '%' + (ok ? '' : ' <span class="no">below target</span>') + '</td><td>' + f(x.pWait * 100, 1) + '%</td><td>' + (isFinite(x.asa) ? f(x.asa, 1) + ' s' : 'never') + '</td><td>' + f(x.occupancy * 100, 0) + '%</td></tr>';
+    }).join('');
+    $('out').innerHTML = '<div class="stats"><div><span class="muted">Agents on the queue</span><b>' + r.agents + '</b></div><div><span class="muted">Agents to roster</span><b>' + r.roster + '</b></div><div><span class="muted">Offered load</span><b>' + f(r.load, 2) + ' erlangs</b></div></div>' +
+      '<div class="muted" style="margin:8px 0">With ' + r.agents + ': ' + f(r.serviceLevel * 100, 1) + '% answered within ' + f(v('t'), 0) + ' s, ' + f(r.pWait * 100, 1) + '% of contacts wait, average speed of answer ' + f(r.asa, 1) + ' s, occupancy ' + f(r.occupancy * 100, 0) + '%.' + (r.before.agents >= 1 ? ' One fewer agent gives ' + f(r.before.serviceLevel * 100, 1) + '%.' : '') + '</div>' +
+      '<table><tr><th>Agents</th><th>Service level</th><th>Wait</th><th>Avg wait</th><th>Occupancy</th></tr>' + rows + '</table>';
+  }
+  function set(a) { ['calls', 'interval', 'aht', 'sl', 't', 'shrink'].forEach(function (k, i) { $(k).value = a[i]; }); render(); }
+  ['calls', 'interval', 'aht', 'sl', 't', 'shrink', 'occ'].forEach(function (i) { $(i).oninput = render; });
+  $('q1').onclick = function () { set([200, 60, 180, 80, 20, 30]); }; $('q2').onclick = function () { set([100, 30, 300, 80, 20, 25]); }; $('q3').onclick = function () { set([60, 60, 480, 90, 60, 30]); };
+  render();
+})();
+</script>
+</body>
+</html>
