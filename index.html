@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ErlangDesk - how many agents does your phone line need?</title>
+<meta name="description" content="Erlang C staffing: agents needed for a service level target, plus the roster after shrinkage.">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#101a1a; color:#f3ede6; line-height:1.6; }
+  .wrap { max-width:680px; margin:0 auto; padding:48px 20px 60px; }
+  .logo { font-size:46px; font-weight:800; } .logo span { color:#4fd1c5; }
+  .tag { font-size:19px; margin-top:10px; color:#ded5ca; }
+  .cta { display:inline-block; margin-top:26px; background:#4fd1c5; color:#101a1a; font-weight:700; padding:14px 30px; border-radius:12px; text-decoration:none; }
+  h2 { font-size:21px; margin:40px 0 10px; } li { color:#b9aea1; margin-bottom:8px; } ul { margin-left:20px; }
+  .demo { margin-top:26px; background:#182828; border-radius:14px; padding:18px; } .demo b { color:#4fd1c5; }
+  footer { margin-top:50px; font-size:13px; color:#8c8174; } a { color:#4fd1c5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Erlang<span>Desk</span></div>
+  <div class="tag">Staffing to the average call volume is how queues blow up. Size it to the target.</div>
+  <a class="cta" href="app.html">Open the app</a>
+  <div class="demo">200 calls an hour at 3 minutes each is 10 erlangs. You need <b>14 agents</b> to answer 80% in 20 seconds, and 20 on the roster at 30% shrinkage.</div>
+  <h2>What it does</h2>
+  <ul><li>Agents needed for your service level target (Erlang C)</li><li>Roster size after shrinkage</li><li>Service level, wait chance, average wait and occupancy around the answer</li><li>An optional occupancy ceiling</li></ul>
+  <footer>Erlang C assumes random arrivals and no hang-ups, so it overstates waits a little. Plan with your real peak interval. Static, client-side, nothing stored. <a href="https://github.com/iLanis-agent/erlangdesk">Source</a></footer>
+</div>
+</body>
+</html>
